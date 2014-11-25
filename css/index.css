@@ -111,6 +111,9 @@ body {
 	background-color: #2e6d82;
     border-top-left-radius: 10px;
     border-top-right-radius: 10px;
+    border-bottom-style: solid;
+    border-bottom-width: 5px;
+    border-bottom-color: #F16665;
 	color: white;
 	font-size: 70px;
 	font-weight: 400;
