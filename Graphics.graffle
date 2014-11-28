@@ -2274,7 +2274,7 @@ onComplete()}</string>
 			</dict>
 		</array>
 		<key>Frame</key>
-		<string>{{28, 112}, {693, 925}}</string>
+		<string>{{13, 0}, {693, 777}}</string>
 		<key>ListView</key>
 		<true/>
 		<key>OutlineWidth</key>
@@ -2288,7 +2288,7 @@ onComplete()}</string>
 		<key>SidebarWidth</key>
 		<integer>120</integer>
 		<key>VisibleRegion</key>
-		<string>{{0, 0}, {558, 783}}</string>
+		<string>{{0, 0}, {558, 635}}</string>
 		<key>Zoom</key>
 		<real>1</real>
 		<key>ZoomValues</key>

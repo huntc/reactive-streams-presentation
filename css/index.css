@@ -127,7 +127,7 @@ body {
 
 .step pre {
     font-family: 'Source Code Pro', monospace;
-    font-size: 24px;
+    font-size: 22px;
     line-height: 1.2em;
 	margin: 35px;
 	text-align: left;
@@ -136,10 +136,12 @@ body {
 .step blockquote {
 	display: none;
 }
+
 .step ol, ul {
 	list-style: circle;
 	margin-left: 10%;
 }
+
 .step li {
 	margin: 25px;
 	text-align: left;
