@@ -61,16 +61,16 @@
     </div>
 
     <div class="step">
-        <h1>Reactive Streams - scope</h1>
-        <img src="images/rs-types.svg" width="50%" height="50%">
-        <pre>onError | (onSubscribe onNext* (onError | onComplete)?</pre>
-    </div>
-
-    <div class="step">
         <h1>Reactive Streams - status</h1>
         <p>Oracle, Pivotal, Netflix</p>
         <p>spray.io, Twitter, Redhat, Typesafe</p>
         <p>SUNY Oswego, Applied Duality, Kaazing Corp</p>
+    </div>
+    
+    <div class="step">
+        <h1>Reactive Streams - scope</h1>
+        <img src="images/rs-types.svg" width="50%" height="50%">
+        <pre>onError | (onSubscribe onNext* (onError | onComplete)?</pre>
     </div>
 
     <div class="step">
@@ -84,27 +84,135 @@
         <p>map, filter, grouped, drop, ...</p>
     </div>
     
+    <div class="step">
+        <h1>Real World Use-cases</h1>
+        <ul>
+          <li>Receive HTTP formdata, read the first n parts</li>
+          <li>Present an HTTP stream and notify when done</li>
+          <li>Read an HTTP stream, verify its digest and write file</li>
+        </ul>
+    </div>
+    
     <div class="step" data-z="-750">
         <iframe seamless="seamless" src="http://localhost:9000" width="100%" height="100%">
         </iframe>
     </div>
     
     <div class="step">
-        <h1>Code</h1>
+        <h1>Receive Http Stream</h1>
+        <pre><code>
+0000: POST /bundles HTTP/1.1
+...
+0000: --------------------------4ab597ac920f42ce
+002c: Content-Disposition: form-data; name="nrOfCpus"
+005d: 
+005f: 2
+0062: --------------------------4ab597ac920f42ce
+008e: Content-Disposition: form-data; name="memory"
+...
+0199: --------------------------4ab597ac920f42ce
+01c5: Content-Disposition: form-data; name="bundle"; filename="sbt-rea
+0205: ctive-runtime-tester-1.0.0-a8c92f2f2c7902d2b76b818ada2526f7db7e8
+0245: c25a9c7fb6ee7550965943fc98b.tgz"
+        </code></pre>
+    </div>
+
+    <div class="step">
+        <h1>Receive Http Stream</h1>
         <pre><code class="scala">
-httpIO
-  .ask(Http.Bind(interface, port))(bindTimeout)
-  .mapTo[Http.ServerBinding]
-  .pipeTo(self)
-      
+multiPartFormData <- Unmarshal(entity).to[FormData]
+// => Source[BodyPart]
+...
+multiPartFormData.parts
+  .prefixAndTail(nrRequirementParts)
+  .runWith(Sink.head)
+  // => Future[(Seq[BodyPart], Source[BodyPart])]
+  .flatMap {
+    case (requirementParts, otherParts) =>
+      val requirementPartsMappings = requirementParts.map { 
+        requirementPart =>
+        ...
+      }
       ...
-      
-case serverBinding: Http.ServerBinding =>
-  handleConnections(serverBinding)
-    .withRoute(bundlesRoute ~ conductorsRoute ~ membersRoute)
+  }
         </code></pre>
     </div>
     
+    <div class="step">
+        <h1>Receive Http Stream - Map</h1>
+        <pre><code class="scala">
+def bundleAndConfiguration(
+  bodyParts: Source[FormData.BodyPart]
+  ): Source[_ <: VerifiableSource] =
+  bodyParts.collect {
+    case part @ FormData.BodyPart(name, entity, _, _) 
+      if name == "bundle" && part.filename.isDefined =>
+        val filename = part.filename.get
+        BundleSource(digestFrom(filename), entity.dataBytes)
+...
+}
+...
+case class BundleSource(
+  digest: Digest, 
+  source: Source[ByteString]) extends VerifiableSource
+        </code></pre>
+    </div>
+        
+    <div class="step">
+        <h1>Re-publish Http Stream</h1>
+        <pre><code class="scala">
+val fileBodyPartsFlow = Flow[VerifiableSource]
+  .map(fileBodyParts)
+  .to(Sink.publisher[FormData.BodyPart])
+  
+val graph =
+  FlowGraph { implicit builder =>
+    val broadcast = Broadcast[VerifiableSource]
+    request.sources ~> broadcast
+    broadcast ~> bundlePublishedFlow
+    broadcast ~> fileBodyPartsFlow
+  }
+  
+val fileBodyPartsPub = 
+  graph.run().get(Sink.publisher[FormData.BodyPart])
+Marshal(FormData(Source(fileBodyPartsPub))).to[HttpResponse]
+        </code></pre>
+    </div>
+    
+    <div class="step">
+        <h1>Verify Stream &amp; Write</h1>
+        <pre><code class="scala">
+val digestSink = Sink.fold(messageDigest)(updateDigest)
+
+val graph = FlowGraph { implicit builder =>
+  val broadcast = Broadcast[ByteString]
+  verifiableSource.source ~> broadcast
+  broadcast ~> digestSink
+  broadcast ~> writeSink
+}
+
+val materializedGraph = graph.run()
+
+val isDigestValid = materializedGraph.get(digestSink)
+  .map(isValidDigest)
+        </code></pre>
+    </div>
+    
+    <div class="step">
+        <h1>Making you look awesome</h1>
+        <p><img src="images/viktor.jpg"></p>
+    </div>
+    
+    <div class="step">
+        <h1>Trifecta (ish)</h1>
+        <ul>
+          <li>Support for back pressure</li>
+          <li>Async/non-blocking</li>
+          <li>Interop across the JVM</li>
+          <li>Makes you look awesome</li>
+        </ul>
+    </div>
+            
     <div class="step" data-z="-1500">
         <h1>Follow me</h1>
         <p>
